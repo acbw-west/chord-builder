@@ -13,11 +13,16 @@ const CONFIG = {
 const STATE = {
     userId: null,
     selectedCell: null,
-    currentChord: null,
+    currentChord: null, // Stores Display Name (e.g. "Cmaj7")
     currentKey: 'C',
     currentQuality: 'Major',
     activeDegreeIdx: null,
-    lastDetectedQuality: '' // <--- ADD THIS LINE
+    lastDetectedQuality: '', 
+    
+    // NEW HISTORY TRACKING
+    prevRoot: null,
+    prevQuality: null,
+    currentRoot: null // Explicitly track root for comparison
 };
 
 /* --- PLAYBACK STATE --- */
@@ -32,6 +37,16 @@ const PALETTE_STATE = [
     { qIdx: 0, sIdx: 0 }, { qIdx: 0, sIdx: 0 }, { qIdx: 0, sIdx: 0 },
     { qIdx: 0, sIdx: 0 }, { qIdx: 0, sIdx: 0 }, { qIdx: 0, sIdx: 0 }, { qIdx: 0, sIdx: 0 }
 ];
+
+const UNIVERSAL_QUALITIES = [
+    '', 'm', '7', 'maj7', 'm7', 'sus2', 'sus4', 'dim', 'aug', 'm7b5', '6', 'm6', '9'
+];
+
+const EXPLORER_STATE = {
+    qIdx: 0, 
+    sIdx: 0,
+    lastRoot: null
+};
 
 const CHROMATIC_SCALE = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
@@ -154,10 +169,11 @@ const CATEGORY_CLASSES = ['cat-major', 'cat-minor', 'cat-dominant', 'cat-dim', '
 document.addEventListener('DOMContentLoaded', () => {
     initSession();
     initFretboard();
+    initVisualizerFretboard(); 
     initTimeline();
     setupEventListeners();
     generateKeyPalette();
-    updateDetectedChord(); // Forces UI to set empty states correctly on load
+    updateDetectedChord(); 
 });
 
 /* --- 1. KEY PALETTE LOGIC (Using ChordGenerator) --- */
@@ -286,17 +302,15 @@ function drawGeneratedShape(shapeArray) {
     if(typeof updateDetectedChord === 'function') updateDetectedChord();
 }
 
-/* --- 2. ALGORITHMIC CHORD DETECTION --- */
+/* --- 2. ALGORITHMIC CHORD DETECTION (FINAL VERSION) --- */
 function updateDetectedChord() {
     const activeCells = document.querySelectorAll('.fret-cell.active');
     const primaryDisplay = document.getElementById('primaryChord');
     const primaryDetails = document.getElementById('primaryDetails');
     const secondaryList = document.getElementById('secondaryChords');
-    
-    // Elements for Emotion & Color
     const emotionDisplay = document.getElementById('chordEmotion');
     const emotionBox = document.querySelector('.emotion-box');
-    const recsBox = document.querySelector('.recs-box'); // To clear/update recs
+    const recsBox = document.querySelector('.recs-box'); 
 
     secondaryList.innerHTML = '';
     primaryDisplay.style.color = ""; 
@@ -307,34 +321,47 @@ function updateDetectedChord() {
         primaryDetails.textContent = "Select notes on the fretboard";
         secondaryList.innerHTML = '<span class="empty-state">...</span>';
         emotionDisplay.textContent = "Play a chord to hear its story.";
-        
-        // 1. UPDATED EMPTY STATE TEXT (For Recommendations)
-        recsBox.innerHTML = `
-            <div class="empty-state">
-                Select a chord to see recommended movements.
-            </div>
-        `;
-        
-        // Reset Box Color
+        recsBox.innerHTML = `<div class="empty-state">Select a chord to see recommended movements.</div>`;
         emotionBox.className = 'emotion-box'; 
         
+        // Reset CURRENT 
         STATE.currentChord = null;
-        STATE.lastDetectedQuality = ''; // Reset quality
+        STATE.lastDetectedQuality = ''; 
+        
+        // Clear Visualizer & Explorer
+        if (typeof updateVisualizerBoard === 'function') updateVisualizerBoard(null);
+        if (typeof updateExplorerCard === 'function') updateExplorerCard(null, null);
+        
         return;
     }
 
-    // --- 1. GATHER NOTES ---
+    // --- 1. GATHER NOTES & PRELOAD AUDIO ---
     let noteObjects = [];
+    let audioPreloadData = []; 
+
     activeCells.forEach(cell => {
+        // Data for Theory Engine
         noteObjects.push({
             val: parseInt(cell.dataset.noteValue),
             stringIndex: parseInt(cell.dataset.stringIndex)
         });
+        
+        // Data for Audio Engine (String Index 0-5 Logic)
+        audioPreloadData.push({
+            stringIndex: 5 - parseInt(cell.dataset.stringIndex), 
+            fret: parseInt(cell.dataset.fret)
+        });
     });
-    // Sort by String Index (Low E = 5) to help detect Bass note
+    
+    // Sort logic data
     noteObjects.sort((a, b) => b.stringIndex - a.stringIndex);
 
-    // --- 2. ASK THE BRAIN (DETECT CHORD) ---
+    // TRIGGER PRELOAD: Start downloading audio immediately
+    if (audioPreloadData.length > 0) {
+        AudioManager.preload(audioPreloadData);
+    }
+
+    // --- 2. DETECT CHORD ---
     const result = MusicTheory.detectChord(noteObjects);
 
     // --- CASE 2: UNKNOWN SHAPE ---
@@ -343,67 +370,76 @@ function updateDetectedChord() {
         primaryDetails.textContent = "Unknown Shape";
         emotionDisplay.textContent = "...";
         recsBox.innerHTML = '<div class="empty-state">No Recs</div>';
+        
         STATE.currentChord = null;
+        
+        // Clear Visualizer & Explorer
+        if (typeof updateVisualizerBoard === 'function') updateVisualizerBoard(null);
+        if (typeof updateExplorerCard === 'function') updateExplorerCard(null, null);
         return;
     }
 
-    // --- 3. UPDATE UI ---
+    // --- 3. MANAGE HISTORY ---
     const { primary, alternatives } = result;
-    
+
+    // Only update history if the chord ACTUALLY changed
+    if (STATE.currentRoot !== primary.root || STATE.lastDetectedQuality !== primary.quality) {
+        // The old "Current" becomes the "Previous"
+        STATE.prevRoot = STATE.currentRoot;
+        STATE.prevQuality = STATE.lastDetectedQuality;
+        
+        // Update Current
+        STATE.currentRoot = primary.root;
+        STATE.lastDetectedQuality = primary.quality;
+        STATE.currentChord = primary.displayName;
+    }
+
+    // --- 4. UPDATE UI ---
     primaryDisplay.textContent = primary.displayName;
     primaryDetails.textContent = primary.family + " Family"; 
-    STATE.currentChord = primary.displayName;
     
-    // Store quality so "Add to Timeline" knows which color to use
-    STATE.lastDetectedQuality = primary.quality; 
-
-    // --- 4. EMOTION & COLOR UPDATE ---
-    // Calculate Context (e.g., "Is this the V chord?")
-    const currentKeyRoot = STATE.currentKey; 
-    const emotionText = MusicTheory.getChordEmotion(
-        primary.root, 
-        primary.quality, 
-        currentKeyRoot
-    );
+    // Emotion & Color
+    const emotionText = MusicTheory.getChordEmotion(primary.root, primary.quality, STATE.currentKey);
     emotionDisplay.innerHTML = emotionText;
+    emotionBox.className = 'emotion-box'; 
+    emotionBox.classList.add(getChordColorClass(primary.quality));
 
-    // Apply Color to Emotion Box
-    emotionBox.className = 'emotion-box'; // Reset classes
-    const colorClass = getChordColorClass(primary.quality);
-    emotionBox.classList.add(colorClass);
+    // Update Visualizer (Bottom Fretboard)
+    if (typeof updateVisualizerBoard === 'function') updateVisualizerBoard(primary);
+    
+    // Update Explorer Card (Top Left Active Control)
+    if (typeof updateExplorerCard === 'function') updateExplorerCard(primary.root, primary.quality);
 
-    // --- 5. RENDER ALTERNATIVES ---
+    // Alternatives
     if (alternatives.length === 0) {
         secondaryList.innerHTML = '<span class="empty-state">No alternatives</span>';
     } else {
         alternatives.forEach(alt => {
             let name = alt.name;
             if (alt.isSlash) name += `/${alt.bass}`;
-            
             const tag = document.createElement('div');
             tag.className = 'alt-chord-tag';
             tag.textContent = name;
             tag.addEventListener('click', () => {
-                // Quick Switch to Alternative
                 primaryDisplay.textContent = name;
                 primaryDetails.textContent = "Alt: " + alt.family;
                 STATE.currentChord = name;
-                // Note: We don't re-run full detection here to keep it snappy
             });
             secondaryList.appendChild(tag);
         });
     }
 
-    // --- 6. GET RECOMMENDATIONS (LOCAL ENGINE) ---
+    // --- 5. GET RECOMMENDATIONS (WITH HISTORY) ---
     try {
         const suggestions = HarmonicEngine.getRecommendations(
             primary.root,
             primary.quality,
-            STATE.currentKey,     // e.g. "C"
-            STATE.currentQuality  // e.g. "Major"
+            STATE.currentKey,     
+            STATE.currentQuality,
+            STATE.prevRoot,      // Pass Previous Root
+            STATE.prevQuality    // Pass Previous Quality
         );
         
-        // 2. PASS "TRUE" TO SHOW HEADER "RECOMMENDED MOVEMENTS"
         renderRecommendations(suggestions, true);
         
     } catch (e) {
@@ -553,6 +589,113 @@ function createInlay() {
     const div = document.createElement('div');
     div.className = 'inlay-dot';
     return div;
+}
+
+/* --- NEW: VISUALIZER LOGIC --- */
+
+// 1. Initialize the Visualizer Board (Run once on load)
+function initVisualizerFretboard() {
+    const container = document.getElementById('fretboardVisualizer');
+    if(!container) return;
+    container.innerHTML = ''; 
+
+    // --- 1. ADD NUMBER ROW (NEW) ---
+    // We reuse the 'fret-numbers' class so it aligns perfectly with the main board
+    const numberRow = document.createElement('div');
+    numberRow.className = 'fret-numbers';
+    
+    for (let i = 1; i <= 12; i++) {
+        const numDiv = document.createElement('div');
+        numDiv.className = 'fret-number';
+        numDiv.textContent = i;
+        // Optional: Make them slightly more transparent/distinct if desired
+        numDiv.style.opacity = "0.7"; 
+        numberRow.appendChild(numDiv);
+    }
+    container.appendChild(numberRow);
+    // -------------------------------
+
+    // 2. Reuse neck wrapper structure
+    const neckWrapper = document.createElement('div');
+    neckWrapper.className = 'neck-wrapper';
+
+    // Labels
+    const labelCol = document.createElement('div');
+    labelCol.className = 'string-labels';
+    [...CONFIG.strings].reverse().forEach(note => {
+        const label = document.createElement('div');
+        label.className = 'string-name';
+        label.textContent = note;
+        labelCol.appendChild(label);
+    });
+    neckWrapper.appendChild(labelCol);
+
+    // Grid
+    const grid = document.createElement('div');
+    grid.className = 'fret-grid';
+
+    [...CONFIG.strings].reverse().forEach((stringName, sIndex) => {
+        const row = document.createElement('div');
+        row.className = 'string-row';
+        const baseIndex = STRING_START_INDICES[stringName];
+
+        // Create Nut + 12 Frets
+        for (let fret = 0; fret <= 12; fret++) {
+            const isNut = (fret === 0);
+            const cell = document.createElement('div');
+            cell.className = isNut ? 'fret-cell nut' : 'fret-cell regular';
+            
+            // Store data for lookup
+            const noteValue = (baseIndex + fret) % 12;
+            cell.dataset.vizNote = noteValue; // Unique ID for finding this note
+
+            // Add Inlays (Visual only)
+            if (!isNut) {
+                const isMiddle = (sIndex === 2);
+                const isFlanking = (sIndex === 1 || sIndex === 3);
+                if (fret === 12 && isFlanking) cell.appendChild(createInlay());
+                else if ([3, 5, 7, 9].includes(fret) && isMiddle) {
+                    const dot = createInlay();
+                    dot.style.top = '100%';
+                    cell.appendChild(dot);
+                }
+            }
+
+            // Marker (Hidden by default, shown via CSS .active)
+            const marker = document.createElement('div');
+            marker.className = 'note-marker';
+            marker.textContent = CHROMATIC_SCALE[noteValue];
+            cell.appendChild(marker);
+
+            row.appendChild(cell);
+        }
+        grid.appendChild(row);
+    });
+
+    neckWrapper.appendChild(grid);
+    container.appendChild(neckWrapper);
+}
+
+// 2. Update the Board (Run every time detection changes)
+function updateVisualizerBoard(primaryChord) {
+    const container = document.getElementById('fretboardVisualizer');
+    if (!container) return;
+
+    // Clear previous highlights
+    container.querySelectorAll('.fret-cell.active').forEach(c => c.classList.remove('active'));
+
+    if (!primaryChord) return;
+
+    // Calculate Target Notes (0-11)
+    const rootVal = primaryChord.rootVal;
+    // Map intervals to actual pitch classes (e.g., C Major [0,4,7] -> C, E, G)
+    const targetNotes = primaryChord.intervals.map(iv => (rootVal + iv) % 12);
+
+    // Highlight EVERY matching note on the visualizer
+    targetNotes.forEach(noteVal => {
+        const matches = container.querySelectorAll(`[data-viz-note="${noteVal}"]`);
+        matches.forEach(cell => cell.classList.add('active'));
+    });
 }
 
 /* --- 5. TIMELINE LOGIC (UPDATED WITH DRAG & DROP) --- */
@@ -1269,4 +1412,98 @@ function renderRecommendations(suggestions, showHeader = false) {
     });
 
     recsBox.appendChild(cardContainer);
+}
+
+/* --- NEW: ACTIVE EXPLORER CARD --- */
+function updateExplorerCard(root, quality) {
+    const container = document.getElementById('activeChordContainer');
+    if (!container) return;
+    container.innerHTML = ''; // Clear previous
+
+    if (!root) {
+        container.innerHTML = '<div class="empty-state" style="font-size:10px;">Play a chord...</div>';
+        return;
+    }
+
+    // 1. Sync State (If this is a new chord detection)
+    // We try to find the current detected quality in our list to sync the index
+    if (root !== EXPLORER_STATE.lastRoot || quality !== UNIVERSAL_QUALITIES[EXPLORER_STATE.qIdx]) {
+        EXPLORER_STATE.lastRoot = root;
+        const foundIdx = UNIVERSAL_QUALITIES.indexOf(quality);
+        EXPLORER_STATE.qIdx = foundIdx !== -1 ? foundIdx : 0; 
+        EXPLORER_STATE.sIdx = 0; // Reset variation on new chord
+    }
+
+    // 2. Generate Shapes (To know how many variations exist)
+    const currentQ = UNIVERSAL_QUALITIES[EXPLORER_STATE.qIdx];
+    // Use the *current state* quality for shapes, unless we just detected a mismatch
+    // Actually, to keep it simple: We use the DETECTED root/quality for the display,
+    // but the ARROWS will use the UNIVERSAL list.
+    
+    // Check generated shapes count for the label
+    const generatedShapes = ChordGenerator.generate(root, quality);
+    const varCount = Math.max(1, generatedShapes.length);
+
+    // 3. Render Card
+    const card = document.createElement('div');
+    card.className = 'chord-control-card explorer';
+    
+    card.innerHTML = `
+        <div class="card-degree">CURRENT</div>
+        <div class="card-main">
+            <div class="card-arrow vert up" data-dir="up">▲</div>
+            <div class="card-mid-row">
+                <div class="card-arrow horz left" data-dir="left">◀</div>
+                <div class="card-chord-name">
+                    <span class="root">${root}</span><span class="qual">${quality}</span>
+                </div>
+                <div class="card-arrow horz right" data-dir="right">▶</div>
+            </div>
+            <div class="card-arrow vert down" data-dir="down">▼</div>
+        </div>
+        <div class="card-shape-name">Var ${EXPLORER_STATE.sIdx + 1}/${varCount}</div>
+    `;
+
+    // 4. Attach Listeners
+    card.querySelectorAll('.card-arrow').forEach(arrow => {
+        arrow.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent bubbling
+            const dir = arrow.dataset.dir;
+
+            if (dir === 'up' || dir === 'down') {
+                // CYCLE QUALITY
+                if (dir === 'up') {
+                    EXPLORER_STATE.qIdx = (EXPLORER_STATE.qIdx + 1) % UNIVERSAL_QUALITIES.length;
+                } else {
+                    EXPLORER_STATE.qIdx = (EXPLORER_STATE.qIdx - 1 + UNIVERSAL_QUALITIES.length) % UNIVERSAL_QUALITIES.length;
+                }
+                EXPLORER_STATE.sIdx = 0; // Reset variation
+            } 
+            else {
+                // CYCLE VARIATION
+                // Re-generate to get count
+                const shapes = ChordGenerator.generate(root, UNIVERSAL_QUALITIES[EXPLORER_STATE.qIdx]);
+                if (shapes.length > 0) {
+                    if (dir === 'right') {
+                        EXPLORER_STATE.sIdx = (EXPLORER_STATE.sIdx + 1) % shapes.length;
+                    } else {
+                        EXPLORER_STATE.sIdx = (EXPLORER_STATE.sIdx - 1 + shapes.length) % shapes.length;
+                    }
+                }
+            }
+
+            // 5. TRIGGER UPDATE
+            // We calculate the new target chord and draw it. 
+            // This will trigger 'updateDetectedChord', which will re-render THIS card.
+            const targetQuality = UNIVERSAL_QUALITIES[EXPLORER_STATE.qIdx];
+            const targetShapes = ChordGenerator.generate(root, targetQuality);
+            
+            if (targetShapes[EXPLORER_STATE.sIdx]) {
+                drawGeneratedShape(targetShapes[EXPLORER_STATE.sIdx]);
+                // Force update manually if needed, but drawGeneratedShape usually calls it
+            }
+        });
+    });
+
+    container.appendChild(card);
 }

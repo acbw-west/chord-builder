@@ -78,7 +78,12 @@
     </section>
 
     <aside class="area-palette glass-panel">
-        <div class="panel-label">Diatonic Chords</div>
+        <div class="panel-label" style="color: var(--aurora-teal);">Active Control</div>
+        
+        <div id="activeChordContainer" class="palette-grid-vertical" style="margin-bottom: 30px; min-height: 140px;">
+            </div>
+
+        <div class="panel-label">Diatonic Library</div>
         <div id="keyChordPalette" class="palette-grid-vertical"></div>
     </aside>
 
@@ -95,9 +100,19 @@
             </div>
         </div>
 
-        <div class="fretboard-controls">
-            <button id="strumBtn" class="action-btn purple">🔊 Strum Selection</button>
-            <button id="clearBoardBtn" class="action-btn purple-ghost">Clear Fretboard</button>
+        <div class="visualizer-box">
+            <div class="fretboard-center-wrapper">
+                <div class="fretboard-container visualizer" id="fretboardVisualizer"></div>
+            </div>
+
+            <div class="fretboard-actions">
+                <button id="strumBtn" class="action-btn purple small-btn">
+                    <span>🔊</span> Strum
+                </button>
+                <button id="clearBoardBtn" class="action-btn blue small-btn">
+                    <span>✖</span> Clear Board
+                </button>
+            </div>
         </div>
     </main>
 

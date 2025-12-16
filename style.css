@@ -1,3 +1,5 @@
+/* frontend/style.css - FINAL VERSION */
+
 /* --- FONTS & VARIABLES --- */
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap');
 
@@ -43,7 +45,7 @@ body {
     grid-template-rows: 
         50px    /* Title */
         60px    /* Settings */
-        1fr     /* Workspace */
+        1fr     /* Workspace (Center) */
         50px    /* Controls */
         180px;  /* Timeline */
         
@@ -113,6 +115,27 @@ select, input {
     box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     transition: transform 0.2s, border-color 0.2s;
 }
+
+/* --- EXPLORER CARD (THE ACTIVE CONTROL) --- */
+.chord-control-card.explorer {
+    border: 2px solid var(--aurora-teal);
+    box-shadow: 0 0 15px rgba(0, 255, 242, 0.15);
+    background: linear-gradient(180deg, #15202b 0%, #0d1218 100%);
+    order: -1; /* Ensure it stays at top if flex messes up */
+}
+
+.chord-control-card.explorer .card-degree {
+    color: var(--aurora-teal);
+    text-shadow: 0 0 8px rgba(0, 255, 242, 0.6);
+    font-size: 11px; 
+    letter-spacing: 1px;
+}
+
+.chord-control-card.explorer:hover {
+    box-shadow: 0 0 25px rgba(0, 255, 242, 0.3);
+    transform: translateY(-2px);
+}
+
 .chord-control-card:hover { transform: translateY(-2px); border-color: var(--aurora-teal); }
 .chord-control-card.selected { border-color: var(--warm-gold); box-shadow: 0 0 15px rgba(255, 183, 0, 0.2); }
 .card-degree { font-size: 14px; font-weight: 800; color: #6b7280; margin-bottom: 8px; }
@@ -131,70 +154,96 @@ select, input {
 .card-shape-name { margin-top: 8px; background: #000; border: 1px solid #333; padding: 3px 8px; border-radius: 10px; font-size: 9px; color: #888; text-transform: uppercase; }
 .chord-control-card.selected .card-shape-name { background: var(--warm-gold); color: #000; border-color: var(--warm-gold); font-weight: bold; }
 
-/* --- ZONE 4 & 5: CENTER --- */
+/* --- ZONE 4 & 5: CENTER (COMPACT LAYOUT) --- */
 .area-center {
     grid-area: center;
-    display: flex; flex-direction: column; gap: 20px;
+    display: flex; flex-direction: column; 
+    gap: 10px; /* Reduced gap to prevent scrolling */
     min-width: 0;
+    
+    /* Scrolling logic remains just in case, but shouldn't be needed now */
+    overflow-y: auto; 
+    padding-right: 10px; 
+    scrollbar-width: thin; 
+    scrollbar-color: var(--aurora-teal) transparent;
 }
 
 .empty-state { font-style: italic; color: rgba(255,255,255,0.4); font-size: 0.9em; }
 
-/* FRETBOARD FLOATING & TEXTURED */
-.fretboard-box {
-    flex: 1;
-    display: flex; align-items: center; justify-content: center;
-    position: relative;
-    background: transparent; 
+/* Container Wrappers */
+.fretboard-box, .visualizer-box {
+    flex: 0 0 auto; 
+    width: 100%;
+    display: flex; flex-direction: column; align-items: center; 
 }
 
-.fretboard-center-wrapper { width: 100%; max-width: 800px; } 
+.fretboard-center-wrapper { 
+    width: 100%; 
+    max-width: 760px; /* Constrained width */
+}
+
+/* Control Bar (Now at the bottom) */
+.fretboard-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 12px; /* Slightly more breathing room from the bottom board */
+    width: 100%;
+    padding-bottom: 5px;
+}
+
 .fretboard-container { display: flex; flex-direction: column; }
 
+/* Fret Numbers */
 .fret-numbers { 
     display: flex; 
-    padding-left: 40px; /* Aligns with Nut Width */
-    margin-bottom: 4px;
+    padding-left: 30px; /* Matches Compact Nut Width */
+    margin-bottom: 2px;
 }
-.fret-number { flex: 1; text-align: center; font-size: 12px; color: var(--aurora-teal); font-weight: bold; text-shadow: 0 1px 2px black; }
+.fret-number { 
+    flex: 1; text-align: center; 
+    font-size: 10px; 
+    color: var(--aurora-teal); 
+    font-weight: bold; 
+    text-shadow: 0 1px 2px black;
+    opacity: 0.7;
+}
 
-/* THE NECK: Wood Texture & Shadow */
+/* The Neck (Wood Texture) */
 .neck-wrapper {
     display: flex; 
-    /* Rich dark wood texture with grain hint */
     background: 
         repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 10px),
         linear-gradient(to bottom, #2e2624, #1a1614);
     border-radius: 6px; 
-    /* Floating Effect */
-    box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
     border: 2px solid #3d312e;
     overflow: hidden;
 }
 
-.string-labels { width: 30px; display: flex; flex-direction: column; justify-content: space-around; background: #0f0c0a; border-right: 2px solid #5c5c5c; }
-.string-name { color: var(--warm-orange); font-size: 11px; text-align: center; font-weight: bold; }
+.string-labels { width: 20px; display: flex; flex-direction: column; justify-content: space-around; background: #0f0c0a; border-right: 2px solid #5c5c5c; }
+.string-name { color: var(--warm-orange); font-size: 9px; text-align: center; font-weight: bold; }
 
 .fret-grid { display: flex; flex-direction: column; flex-grow: 1; }
 
+/* Compact Rows (28px) */
 .string-row { 
     display: flex; 
-    height: 40px; 
+    height: 28px; 
     position: relative; 
 }
 
-/* STRINGS */
+/* Strings (Silver Lines) */
 .string-row::before { 
     content: ''; 
     position: absolute; 
     left: 0; right: 0; top: 50%; 
     transform: translateY(-50%); 
-    background: #e2e2e2; /* Bright silver */
+    background: #e2e2e2; 
     box-shadow: 0 2px 4px rgba(0,0,0,0.8); 
     pointer-events: none; 
     z-index: 5; 
 }
-/* Variable Thickness */
 .string-row:nth-child(1)::before { height: 1px; opacity: 0.6; } 
 .string-row:nth-child(2)::before { height: 1px; opacity: 0.8; } 
 .string-row:nth-child(3)::before { height: 2px; opacity: 0.9; } 
@@ -202,9 +251,8 @@ select, input {
 .string-row:nth-child(5)::before { height: 3px; opacity: 1.0; } 
 .string-row:nth-child(6)::before { height: 4px; opacity: 1.0; }
 
-/* FRET CELLS & WIRES */
+/* Cells & Frets */
 .fret-cell { 
-    /* Metallic Fret Wire Look */
     border-right: 2px solid #888; 
     border-left: 1px solid #111;
     position: relative; cursor: pointer; flex: 1; z-index: 10; 
@@ -212,31 +260,43 @@ select, input {
 .fret-cell:hover { background: rgba(255, 255, 255, 0.08); }
 
 .fret-cell.nut { 
-    width: 40px; flex: none; 
+    width: 30px; /* Compact Nut */
+    flex: none; 
     background: #000; 
-    border-right: 6px solid #e0e0e0; /* Bone Nut */
+    border-right: 4px solid #e0e0e0; 
     border-left: none;
 }
 
 .note-marker { 
-    width: 24px; height: 24px; 
+    width: 20px; height: 20px; /* Smaller Dots */
     background: radial-gradient(circle at 30% 30%, #ffd700, #ff8c00); 
     border-radius: 50%; 
     box-shadow: 0 0 10px #ff8c00; 
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
     display: none; z-index: 20; 
-    font-size: 10px; color: #3e1404; 
+    font-size: 9px; color: #3e1404; 
     align-items: center; justify-content: center; font-weight: bold;
 }
 .fret-cell.active .note-marker { display: flex; }
-.inlay-dot { width: 12px; height: 12px; background: #fff; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.3; pointer-events: none; z-index: 1; box-shadow: 0 0 5px white;}
+.inlay-dot { width: 8px; height: 8px; background: #fff; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.3; pointer-events: none; z-index: 1; box-shadow: 0 0 5px white;}
 
-/* NEW FRET CONTROLS (Center, Under Fretboard) */
-.fretboard-controls {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    padding-bottom: 10px;
+/* --- VISUALIZER SPECIFIC --- */
+.visualizer-box {
+    margin-top: 5px; 
+    opacity: 0.9;
+}
+
+.fretboard-container.visualizer .fret-cell { cursor: default; }
+.fretboard-container.visualizer .fret-cell:hover { background: transparent; }
+
+.fretboard-container.visualizer .fret-cell.active .note-marker {
+    background: radial-gradient(circle at 30% 30%, #00f2ff, #0097a7);
+    box-shadow: 0 0 8px #00e5ff;
+    color: #00363a;
+}
+.fretboard-container.visualizer .neck-wrapper {
+    border-color: #2c3e50;
+    filter: brightness(0.85); 
 }
 
 /* --- ZONE 6: ANALYSIS --- */
@@ -289,31 +349,72 @@ select, input {
 .cell-label { font-size: 9px; color: rgba(255,255,255,0.4); position: absolute; top: 4px; left: 4px; }
 .cell-chord { font-size: 15px; font-weight: bold; color: white; }
 
+/* --- BUTTONS & CONTROLS --- */
+.action-btn, .save-btn, .remove-btn, .transport-btn { 
+    border: none; border-radius: 6px; cursor: pointer; 
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; 
+    color: white; font-size: 11px; padding: 10px 15px; transition: 0.2s; 
+}
 
-/* --- BUTTONS --- */
-.action-btn, .save-btn, .remove-btn, .transport-btn { border: none; border-radius: 6px; cursor: pointer; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: white; font-size: 11px; padding: 10px 15px; transition: 0.2s; }
+/* 1. Fretboard Buttons (Small & Sleek) */
+.small-btn {
+    padding: 6px 12px;
+    font-size: 10px;
+    display: flex; align-items: center; gap: 6px;
+    min-width: 100px; justify-content: center;
+}
+.small-btn span { font-size: 12px; }
 
-/* New Purple Buttons */
+/* Purple Action */
 .action-btn.purple { background: linear-gradient(135deg, #8e44ad, #9b59b6); box-shadow: 0 4px 10px rgba(142, 68, 173, 0.4); }
-.action-btn.purple:hover { filter: brightness(1.2); transform: translateY(-2px); }
-.action-btn.purple-ghost { background: transparent; border: 1px solid #9b59b6; color: #9b59b6; box-shadow: none; }
-.action-btn.purple-ghost:hover { background: rgba(155, 89, 182, 0.1); color: white; border-color: white; }
+.action-btn.purple:hover { filter: brightness(1.2); transform: translateY(-1px); }
 
-/* The Add Hero Button */
+/* Ghost Purple */
+.action-btn.purple-ghost { background: rgba(155, 89, 182, 0.1); border: 1px solid #9b59b6; color: #9b59b6; }
+.action-btn.purple-ghost:hover { background: rgba(155, 89, 182, 0.2); color: white; border-color: white; }
+
+/* Add this new Blue Button Style */
+.action-btn.blue { 
+    background: linear-gradient(135deg, #3498db, #2980b9); 
+    box-shadow: 0 4px 10px rgba(52, 152, 219, 0.4); 
+}
+.action-btn.blue:hover { 
+    filter: brightness(1.2); 
+    transform: translateY(-1px); 
+}
+
+/* 2. Timeline Buttons (THE UPGRADE) */
+/* "Remove Chord" - Warning Orange */
+#removeChordBtn {
+    background: linear-gradient(135deg, #e67e22, #d35400);
+    box-shadow: 0 4px 10px rgba(230, 126, 34, 0.3);
+}
+#removeChordBtn:hover { filter: brightness(1.2); transform: translateY(-1px); }
+
+/* "Clear All" - Danger Red */
+#clearTimelineBtn {
+    background: linear-gradient(135deg, #c0392b, #b03a2e);
+    box-shadow: 0 4px 10px rgba(192, 57, 43, 0.3);
+    margin-left: 5px; 
+}
+#clearTimelineBtn:hover { filter: brightness(1.2); transform: translateY(-1px); }
+
+/* Playback Controls */
+.transport-btn.play { background: linear-gradient(135deg, #00b09b, #96c93d); }
+.transport-btn.stop { background: linear-gradient(135deg, #cb2d3e, #ef473a); }
+
+/* Save/Load */
+.save-btn { background: linear-gradient(135deg, #2b32b2, #1488cc); }
+.action-btn.secondary { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
+.action-btn.secondary:hover { background: rgba(255,255,255,0.2); }
+
+/* Hero Add Button */
 .action-btn.hero-add { 
     background: linear-gradient(135deg, #00c6ff, #0072ff); 
     box-shadow: 0 0 20px rgba(0, 114, 255, 0.4); 
     padding: 15px; font-size: 13px; letter-spacing: 1px;
 }
 .action-btn.hero-add:hover { transform: scale(1.02); box-shadow: 0 0 30px rgba(0, 114, 255, 0.6); }
-
-/* Other Buttons */
-.transport-btn.play { background: linear-gradient(135deg, #00b09b, #96c93d); }
-.transport-btn.stop { background: linear-gradient(135deg, #cb2d3e, #ef473a); }
-.remove-btn { background: linear-gradient(135deg, #757f9a, #d7dde8); color: #333; }
-.save-btn { background: linear-gradient(135deg, #2b32b2, #1488cc); }
-.action-btn.secondary { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
-.action-btn.secondary:hover { background: rgba(255,255,255,0.2); }
 
 /* --- DRAG AND DROP VISUALS --- */
 
@@ -327,7 +428,7 @@ select, input {
 
 /* The target cell when you hover over it with a chord */
 .beat-cell.drag-over {
-    background: rgba(0, 255, 242, 0.15) !important; /* Aurora Teal Tint */
+    background: rgba(0, 255, 242, 0.15) !important; 
     border-color: var(--aurora-teal) !important;
     transform: scale(1.05);
     box-shadow: 0 0 15px rgba(0, 255, 242, 0.4);
@@ -355,14 +456,13 @@ select, input {
     border-radius: 8px;
     flex-grow: 1;
     
-    /* Default Purple, overridden by JS adding color classes */
     border-left: 4px solid var(--aurora-purple); 
     transition: border-color 0.3s ease;
 }
 
 .emotion-text {
     font-size: 13px;
-    color: #d1d5db; /* Softer white */
+    color: #d1d5db; 
     font-style: italic;
     line-height: 1.4;
     text-align: left;
@@ -379,7 +479,7 @@ select, input {
     background: rgba(0,0,0,0.2);
     border-radius: 8px;
     padding: 10px;
-    position: relative; /* For absolute header */
+    position: relative; 
     
     /* Center the container */
     display: flex;
@@ -390,7 +490,7 @@ select, input {
 .recs-card-container {
     display: flex;
     gap: 10px;
-    margin-top: 15px; /* Push down to make room for header */
+    margin-top: 15px; 
     width: 100%;
     justify-content: center;
     overflow-x: auto;
@@ -421,9 +521,9 @@ select, input {
 .rec-res { border-bottom: 3px solid #2ecc71; }      /* Green */
 .rec-motion { border-bottom: 3px solid #f1c40f; }   /* Yellow */
 .rec-contrast { border-bottom: 3px solid #9b59b6; } /* Purple */
-.rec-flow { border-bottom: 3px solid #3498db; }     /* Blue (Circle of Fifths) */
-.rec-spice { border-bottom: 3px solid #e056fd; }    /* Electric Pink/Magenta */
-.rec-stasis { border-bottom: 3px solid #00d2d3; }   /* Cyan/Teal */
+.rec-flow { border-bottom: 3px solid #3498db; }     /* Blue */
+.rec-spice { border-bottom: 3px solid #e056fd; }    /* Pink */
+.rec-stasis { border-bottom: 3px solid #00d2d3; }   /* Teal */
 
 .rec-chord {
     font-size: 16px;
@@ -440,46 +540,28 @@ select, input {
 /* --- DYNAMIC CHORD COLOR ENGINE --- */
 
 /* 1. MAJOR FAMILY */
-/* Radiant Gold: "Everything is okay." */
 .color-major-triad { --chord-color: #FFD700; } 
-/* Warm Pastel Rose: "Innocence, playfulness." */
 .color-major-6     { --chord-color: #F48FB1; } 
-/* Periwinkle Sky: "Acceptance, peace." */
 .color-major-7     { --chord-color: #8EA4D2; } 
 
 /* 2. MINOR FAMILY */
-/* Burnt Crimson: "Contained resistance." */
 .color-minor-triad { --chord-color: #C0392B; } 
-/* Velvet Magenta: "Longing, desire." */
 .color-minor-7     { --chord-color: #8E44AD; } 
-/* Dusty Ghost Teal: "Haunting, memory." (Inferred for m6) */
 .color-minor-6     { --chord-color: #546E7A; } 
-/* Dark Navy: "Bond/Noir tension." */
 .color-minor-dark  { --chord-color: #1a252f; } 
 
 /* 3. DOMINANT FAMILY */
-/* Sharp Scarlet: "Urgency, demand." */
 .color-dom-7       { --chord-color: #077b2f; } 
-/* Molten Coral: "Confidence, swagger." */
 .color-dom-9       { --chord-color: #FF7F50; } 
-/* Electric Fuchsia: "Anxiety, danger." */
 .color-dom-alt     { --chord-color: #D500F9; } 
 
 /* 4. SUSPENDED */
-/* Pale Morning Blue: "Curiosity, a question." */
 .color-sus-2       { --chord-color: #B3E5FC; } 
-/* Muted Storm Blue: "Held breath." */
 .color-sus-4       { --chord-color: #455A64; } 
 
 /* 5. UNSTABLE / OTHERS */
-/* Bruised Plum: "Unease, wrong on purpose." */
 .color-dim-triad   { --chord-color: #7B1FA2; } 
-/* Blackened Violet: "Panic, no floor." */
 .color-dim-7       { --chord-color: #311B92; } 
-/* Iridescent Lilac: "Surreal dream." */
 .color-aug         { --chord-color: #9575CD; } 
-/* Charcoal: "Neutral strength." */
 .color-power       { --chord-color: #616161; } 
-/* Opalescent White: "Shimmer, atmosphere." */
 .color-add         { --chord-color: #ECF0F1; }
-
