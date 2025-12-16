@@ -1,0 +1,485 @@
+/* --- FONTS & VARIABLES --- */
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap');
+
+:root {
+    --bg-deep: #0B1026;
+    --glass-panel: rgba(18, 24, 38, 0.85);
+    --glass-border: rgba(169, 218, 255, 0.15);
+    --aurora-teal: #00fff2;
+    --aurora-purple: #bd00ff;
+    --starlight: #ffffff;
+    --warm-gold: #ffb700;
+    --warm-orange: #ff7e00;
+    --text-main: #e0e6ed;
+    --text-muted: #94a3b8;
+}
+
+/* --- GLOBAL RESET --- */
+* { box-sizing: border-box; }
+
+body { 
+    font-family: 'Quicksand', sans-serif;
+    margin: 0; padding: 0;
+    color: var(--text-main);
+    background: linear-gradient(rgba(11, 16, 38, 0.6), rgba(11, 16, 38, 0.3)), 
+                url('https://images.unsplash.com/photo-1531366936337-7c912a4589a7?q=80&w=2070&auto=format&fit=crop');
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+}
+
+/* --- DASHBOARD GRID --- */
+.dashboard-container {
+    display: grid;
+    height: 100%;
+    width: 100%;
+    padding: 15px;
+    gap: 15px;
+    
+    grid-template-columns: 320px 1fr 280px; 
+    grid-template-rows: 
+        50px    /* Title */
+        60px    /* Settings */
+        1fr     /* Workspace */
+        50px    /* Controls */
+        180px;  /* Timeline */
+        
+    grid-template-areas: 
+        "title title title"
+        "settings settings settings"
+        "palette center analysis"
+        "controls controls controls"
+        "timeline timeline timeline";
+}
+
+/* --- SHARED STYLES --- */
+.glass-panel {
+    background: var(--glass-panel);
+    backdrop-filter: blur(12px); 
+    border-radius: 12px; 
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    padding: 10px;
+}
+
+/* --- ZONE 1: TITLE --- */
+.area-title {
+    grid-area: title;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(11, 16, 38, 0.9);
+}
+h1 { margin: 0; font-size: 1.5rem; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 15px rgba(255, 255, 255, 0.4), 0 0 30px var(--aurora-teal); color: var(--starlight); }
+
+/* --- ZONE 2: SETTINGS --- */
+.area-settings {
+    grid-area: settings;
+    display: flex; align-items: center; gap: 20px; padding: 0 20px;
+}
+.control-group.horizontal { display: flex; align-items: center; gap: 10px; }
+.control-group label { font-size: 0.75em; font-weight: 700; color: var(--aurora-teal); text-transform: uppercase; margin: 0; }
+select, input {
+    padding: 6px 10px; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+    background-color: rgba(13, 19, 33, 0.8); color: var(--starlight); font-family: inherit; font-weight: bold;
+}
+#userIdDisplay { background: rgba(255, 255, 255, 0.1); padding: 5px 10px; border-radius: 20px; font-size: 0.8em; border: 1px solid var(--glass-border); color: var(--text-muted); }
+
+/* --- ZONE 3: PALETTE --- */
+.area-palette {
+    grid-area: palette;
+    overflow-y: auto;
+    display: flex; flex-direction: column; align-items: center;
+    background: rgba(15, 20, 35, 0.9); 
+}
+.panel-label { width: 100%; text-align: center; font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: bold; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px; }
+
+.palette-grid-vertical {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    width: 100%;
+}
+
+.chord-control-card {
+    background: linear-gradient(180deg, #1a1e29 0%, #11141c 100%);
+    border: 1px solid #333842;
+    border-radius: 12px;
+    padding: 10px;
+    width: 130px;
+    display: flex; flex-direction: column; align-items: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    transition: transform 0.2s, border-color 0.2s;
+}
+.chord-control-card:hover { transform: translateY(-2px); border-color: var(--aurora-teal); }
+.chord-control-card.selected { border-color: var(--warm-gold); box-shadow: 0 0 15px rgba(255, 183, 0, 0.2); }
+.card-degree { font-size: 14px; font-weight: 800; color: #6b7280; margin-bottom: 8px; }
+.chord-control-card.selected .card-degree { color: var(--warm-gold); text-shadow: 0 0 5px var(--warm-gold); }
+.card-main { width: 100%; display: flex; flex-direction: column; gap: 4px; }
+.card-arrow { background: rgba(255,255,255,0.03); border-radius: 4px; cursor: pointer; color: #555; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+.card-arrow:hover { background: rgba(255,255,255,0.1); color: var(--starlight); }
+.card-arrow.vert { width: 100%; height: 20px; font-size: 10px; }
+.card-arrow.vert:hover { background: var(--aurora-teal); color: #000; }
+.card-mid-row { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 5px 0; }
+.card-arrow.horz { width: 24px; height: 30px; font-size: 12px; }
+.card-arrow.horz:hover { background: var(--warm-gold); color: #000; }
+.card-chord-name { text-align: center; flex: 1; }
+.card-chord-name .root { display: block; font-size: 20px; font-weight: 700; color: white; line-height: 1; }
+.card-chord-name .qual { display: block; font-size: 12px; font-weight: 600; color: var(--aurora-teal); margin-top: 2px; }
+.card-shape-name { margin-top: 8px; background: #000; border: 1px solid #333; padding: 3px 8px; border-radius: 10px; font-size: 9px; color: #888; text-transform: uppercase; }
+.chord-control-card.selected .card-shape-name { background: var(--warm-gold); color: #000; border-color: var(--warm-gold); font-weight: bold; }
+
+/* --- ZONE 4 & 5: CENTER --- */
+.area-center {
+    grid-area: center;
+    display: flex; flex-direction: column; gap: 20px;
+    min-width: 0;
+}
+
+.empty-state { font-style: italic; color: rgba(255,255,255,0.4); font-size: 0.9em; }
+
+/* FRETBOARD FLOATING & TEXTURED */
+.fretboard-box {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    background: transparent; 
+}
+
+.fretboard-center-wrapper { width: 100%; max-width: 800px; } 
+.fretboard-container { display: flex; flex-direction: column; }
+
+.fret-numbers { 
+    display: flex; 
+    padding-left: 40px; /* Aligns with Nut Width */
+    margin-bottom: 4px;
+}
+.fret-number { flex: 1; text-align: center; font-size: 12px; color: var(--aurora-teal); font-weight: bold; text-shadow: 0 1px 2px black; }
+
+/* THE NECK: Wood Texture & Shadow */
+.neck-wrapper {
+    display: flex; 
+    /* Rich dark wood texture with grain hint */
+    background: 
+        repeating-linear-gradient(90deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 10px),
+        linear-gradient(to bottom, #2e2624, #1a1614);
+    border-radius: 6px; 
+    /* Floating Effect */
+    box-shadow: 0 20px 50px rgba(0,0,0,0.9);
+    border: 2px solid #3d312e;
+    overflow: hidden;
+}
+
+.string-labels { width: 30px; display: flex; flex-direction: column; justify-content: space-around; background: #0f0c0a; border-right: 2px solid #5c5c5c; }
+.string-name { color: var(--warm-orange); font-size: 11px; text-align: center; font-weight: bold; }
+
+.fret-grid { display: flex; flex-direction: column; flex-grow: 1; }
+
+.string-row { 
+    display: flex; 
+    height: 40px; 
+    position: relative; 
+}
+
+/* STRINGS */
+.string-row::before { 
+    content: ''; 
+    position: absolute; 
+    left: 0; right: 0; top: 50%; 
+    transform: translateY(-50%); 
+    background: #e2e2e2; /* Bright silver */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.8); 
+    pointer-events: none; 
+    z-index: 5; 
+}
+/* Variable Thickness */
+.string-row:nth-child(1)::before { height: 1px; opacity: 0.6; } 
+.string-row:nth-child(2)::before { height: 1px; opacity: 0.8; } 
+.string-row:nth-child(3)::before { height: 2px; opacity: 0.9; } 
+.string-row:nth-child(4)::before { height: 2px; opacity: 1.0; } 
+.string-row:nth-child(5)::before { height: 3px; opacity: 1.0; } 
+.string-row:nth-child(6)::before { height: 4px; opacity: 1.0; }
+
+/* FRET CELLS & WIRES */
+.fret-cell { 
+    /* Metallic Fret Wire Look */
+    border-right: 2px solid #888; 
+    border-left: 1px solid #111;
+    position: relative; cursor: pointer; flex: 1; z-index: 10; 
+}
+.fret-cell:hover { background: rgba(255, 255, 255, 0.08); }
+
+.fret-cell.nut { 
+    width: 40px; flex: none; 
+    background: #000; 
+    border-right: 6px solid #e0e0e0; /* Bone Nut */
+    border-left: none;
+}
+
+.note-marker { 
+    width: 24px; height: 24px; 
+    background: radial-gradient(circle at 30% 30%, #ffd700, #ff8c00); 
+    border-radius: 50%; 
+    box-shadow: 0 0 10px #ff8c00; 
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+    display: none; z-index: 20; 
+    font-size: 10px; color: #3e1404; 
+    align-items: center; justify-content: center; font-weight: bold;
+}
+.fret-cell.active .note-marker { display: flex; }
+.inlay-dot { width: 12px; height: 12px; background: #fff; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.3; pointer-events: none; z-index: 1; box-shadow: 0 0 5px white;}
+
+/* NEW FRET CONTROLS (Center, Under Fretboard) */
+.fretboard-controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    padding-bottom: 10px;
+}
+
+/* --- ZONE 6: ANALYSIS --- */
+.area-analysis {
+    grid-area: analysis;
+    display: flex; flex-direction: column; gap: 15px;
+}
+.chord-box { text-align: center; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.chord-label { text-transform: uppercase; font-size: 10px; letter-spacing: 2px; color: var(--aurora-teal); margin-bottom: 5px; font-weight: bold; }
+.chord-name { font-size: 32px; font-weight: 700; color: var(--warm-gold); margin-bottom: 5px; text-shadow: 0 0 15px rgba(255, 183, 0, 0.4); }
+.chord-details { font-size: 12px; color: var(--text-muted); font-style: italic; }
+
+.chord-list-vertical {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 5px;
+    max-height: 150px; overflow-y: auto;
+}
+.alt-chord-tag { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 5px 10px; border-radius: 15px; font-size: 12px; color: var(--text-main); cursor: pointer; }
+.alt-chord-tag:hover { background: var(--warm-gold); color: #000; }
+
+.right-actions { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
+
+/* --- ZONE 7: CONTROLS --- */
+.area-controls {
+    grid-area: controls;
+    display: flex; justify-content: space-between; align-items: center; padding: 0 30px;
+}
+.control-cluster { display: flex; gap: 10px; }
+
+/* --- ZONE 8: TIMELINE --- */
+.area-timeline {
+    grid-area: timeline;
+    background: rgba(0,0,0,0.3);
+    overflow-x: auto;
+    padding: 10px 20px;
+    display: flex; align-items: center;
+}
+.timeline-wrapper { display: flex; height: 100%; min-width: 100%; align-items: center; }
+.timeline-row { display: inline-flex; align-items: center; gap: 15px; }
+.bar-group { display: flex; gap: 8px; padding: 10px; border: 1px dashed rgba(255,255,255,0.2); border-radius: 8px; background: rgba(0,0,0,0.2); position: relative; margin-top: 10px; }
+.bar-label-tag { position: absolute; top: -18px; left: 0; font-size: 10px; color: var(--text-muted); font-weight: bold; text-transform: uppercase; }
+.beat-cell {
+    width: 65px; height: 100px;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; position: relative; transition: all 0.2s;
+}
+.beat-cell:hover { border-color: var(--aurora-teal); background: rgba(255,255,255,0.1); transform: translateY(-3px); }
+.beat-cell.selected { border-color: var(--warm-gold) !important; box-shadow: 0 0 15px rgba(255, 183, 0, 0.4); transform: scale(1.05); background: rgba(255, 183, 0, 0.1); }
+.beat-cell.playing { border-color: var(--aurora-purple) !important; box-shadow: 0 0 20px var(--aurora-purple); transform: scale(1.1); background: rgba(189, 0, 255, 0.2); }
+.cell-label { font-size: 9px; color: rgba(255,255,255,0.4); position: absolute; top: 4px; left: 4px; }
+.cell-chord { font-size: 15px; font-weight: bold; color: white; }
+
+
+/* --- BUTTONS --- */
+.action-btn, .save-btn, .remove-btn, .transport-btn { border: none; border-radius: 6px; cursor: pointer; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: white; font-size: 11px; padding: 10px 15px; transition: 0.2s; }
+
+/* New Purple Buttons */
+.action-btn.purple { background: linear-gradient(135deg, #8e44ad, #9b59b6); box-shadow: 0 4px 10px rgba(142, 68, 173, 0.4); }
+.action-btn.purple:hover { filter: brightness(1.2); transform: translateY(-2px); }
+.action-btn.purple-ghost { background: transparent; border: 1px solid #9b59b6; color: #9b59b6; box-shadow: none; }
+.action-btn.purple-ghost:hover { background: rgba(155, 89, 182, 0.1); color: white; border-color: white; }
+
+/* The Add Hero Button */
+.action-btn.hero-add { 
+    background: linear-gradient(135deg, #00c6ff, #0072ff); 
+    box-shadow: 0 0 20px rgba(0, 114, 255, 0.4); 
+    padding: 15px; font-size: 13px; letter-spacing: 1px;
+}
+.action-btn.hero-add:hover { transform: scale(1.02); box-shadow: 0 0 30px rgba(0, 114, 255, 0.6); }
+
+/* Other Buttons */
+.transport-btn.play { background: linear-gradient(135deg, #00b09b, #96c93d); }
+.transport-btn.stop { background: linear-gradient(135deg, #cb2d3e, #ef473a); }
+.remove-btn { background: linear-gradient(135deg, #757f9a, #d7dde8); color: #333; }
+.save-btn { background: linear-gradient(135deg, #2b32b2, #1488cc); }
+.action-btn.secondary { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
+.action-btn.secondary:hover { background: rgba(255,255,255,0.2); }
+
+/* --- DRAG AND DROP VISUALS --- */
+
+/* The cell being dragged (The "Ghost" left behind) */
+.beat-cell.dragging {
+    opacity: 0.4;
+    border: 2px dashed #777;
+    transform: scale(0.95);
+    background: rgba(0,0,0,0.5);
+}
+
+/* The target cell when you hover over it with a chord */
+.beat-cell.drag-over {
+    background: rgba(0, 255, 242, 0.15) !important; /* Aurora Teal Tint */
+    border-color: var(--aurora-teal) !important;
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(0, 255, 242, 0.4);
+    z-index: 100;
+}
+
+/* A. Timeline Cells (Bottom Border) */
+.beat-cell[class*="color-"] {
+    border-bottom: 4px solid var(--chord-color);
+}
+
+/* Cursor cues */
+.beat-cell[draggable="true"] {
+    cursor: grab;
+}
+.beat-cell[draggable="true"]:active {
+    cursor: grabbing;
+}
+
+/* --- EMOTIONAL CONTEXT BOX --- */
+.emotion-box {
+    margin-top: 10px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    flex-grow: 1;
+    
+    /* Default Purple, overridden by JS adding color classes */
+    border-left: 4px solid var(--aurora-purple); 
+    transition: border-color 0.3s ease;
+}
+
+.emotion-text {
+    font-size: 13px;
+    color: #d1d5db; /* Softer white */
+    font-style: italic;
+    line-height: 1.4;
+    text-align: left;
+}
+
+/* B. Emotion Box (Left Accent Border) */
+.emotion-box[class*="color-"] {
+    border-left-color: var(--chord-color) !important;
+}
+
+/* --- RECOMMENDATION BOX --- */
+.recs-box {
+    flex: 0 0 20%; 
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    padding: 10px;
+    position: relative; /* For absolute header */
+    
+    /* Center the container */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.recs-card-container {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px; /* Push down to make room for header */
+    width: 100%;
+    justify-content: center;
+    overflow-x: auto;
+}
+
+/* REC CARD */
+.rec-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 8px 12px;
+    min-width: 100px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.rec-card:hover {
+    background: rgba(255,255,255,0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+/* Colors by Type */
+.rec-res { border-bottom: 3px solid #2ecc71; }      /* Green */
+.rec-motion { border-bottom: 3px solid #f1c40f; }   /* Yellow */
+.rec-contrast { border-bottom: 3px solid #9b59b6; } /* Purple */
+.rec-flow { border-bottom: 3px solid #3498db; }     /* Blue (Circle of Fifths) */
+.rec-spice { border-bottom: 3px solid #e056fd; }    /* Electric Pink/Magenta */
+.rec-stasis { border-bottom: 3px solid #00d2d3; }   /* Cyan/Teal */
+
+.rec-chord {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--starlight);
+}
+
+.rec-reason {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* --- DYNAMIC CHORD COLOR ENGINE --- */
+
+/* 1. MAJOR FAMILY */
+/* Radiant Gold: "Everything is okay." */
+.color-major-triad { --chord-color: #FFD700; } 
+/* Warm Pastel Rose: "Innocence, playfulness." */
+.color-major-6     { --chord-color: #F48FB1; } 
+/* Periwinkle Sky: "Acceptance, peace." */
+.color-major-7     { --chord-color: #8EA4D2; } 
+
+/* 2. MINOR FAMILY */
+/* Burnt Crimson: "Contained resistance." */
+.color-minor-triad { --chord-color: #C0392B; } 
+/* Velvet Magenta: "Longing, desire." */
+.color-minor-7     { --chord-color: #8E44AD; } 
+/* Dusty Ghost Teal: "Haunting, memory." (Inferred for m6) */
+.color-minor-6     { --chord-color: #546E7A; } 
+/* Dark Navy: "Bond/Noir tension." */
+.color-minor-dark  { --chord-color: #1a252f; } 
+
+/* 3. DOMINANT FAMILY */
+/* Sharp Scarlet: "Urgency, demand." */
+.color-dom-7       { --chord-color: #077b2f; } 
+/* Molten Coral: "Confidence, swagger." */
+.color-dom-9       { --chord-color: #FF7F50; } 
+/* Electric Fuchsia: "Anxiety, danger." */
+.color-dom-alt     { --chord-color: #D500F9; } 
+
+/* 4. SUSPENDED */
+/* Pale Morning Blue: "Curiosity, a question." */
+.color-sus-2       { --chord-color: #B3E5FC; } 
+/* Muted Storm Blue: "Held breath." */
+.color-sus-4       { --chord-color: #455A64; } 
+
+/* 5. UNSTABLE / OTHERS */
+/* Bruised Plum: "Unease, wrong on purpose." */
+.color-dim-triad   { --chord-color: #7B1FA2; } 
+/* Blackened Violet: "Panic, no floor." */
+.color-dim-7       { --chord-color: #311B92; } 
+/* Iridescent Lilac: "Surreal dream." */
+.color-aug         { --chord-color: #9575CD; } 
+/* Charcoal: "Neutral strength." */
+.color-power       { --chord-color: #616161; } 
+/* Opalescent White: "Shimmer, atmosphere." */
+.color-add         { --chord-color: #ECF0F1; }
+

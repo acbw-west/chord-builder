@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cloud Chord Builder</title>
+    
+    <link rel="manifest" href="manifest.json">
+    
+    <meta name="theme-color" content="#0B1026">
+    
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="icon" href="ME.PNG">
+</head>
+<body>
+
+<div class="dashboard-container">
+
+    <header class="area-title glass-panel">
+        <h1>🎸 Cloud Chord Builder</h1>
+    </header>
+
+    <section class="area-settings glass-panel">
+        <div class="control-group horizontal">
+            <label for="keySelect">Key</label>
+            <select id="keySelect">
+    <optgroup label="Major Keys">
+        <option value="C-Major">C Major</option>
+        <option value="G-Major">G Major</option>
+        <option value="D-Major">D Major</option>
+        <option value="A-Major">A Major</option>
+        <option value="E-Major">E Major</option>
+        <option value="B-Major">B Major</option>
+        <option value="F#-Major">F# Major</option>
+        <option value="C#-Major">C# Major</option>
+        <option value="F-Major">F Major</option>
+        <option value="A#-Major">Bb Major</option> 
+        <option value="D#-Major">Eb Major</option> 
+        <option value="G#-Major">Ab Major</option> 
+    </optgroup>
+    
+    <optgroup label="Minor Keys">
+        <option value="A-Minor">A Minor</option>
+        <option value="E-Minor">E Minor</option>
+        <option value="B-Minor">B Minor</option>
+        <option value="F#-Minor">F# Minor</option>
+        <option value="C#-Minor">C# Minor</option>
+        <option value="G#-Minor">G# Minor</option>
+        <option value="D#-Minor">D# Minor</option>
+        <option value="A#-Minor">A# Minor</option>
+        <option value="D-Minor">D Minor</option>
+        <option value="G-Minor">G Minor</option>
+        <option value="C-Minor">C Minor</option>
+        <option value="F-Minor">F Minor</option>
+    </optgroup>
+</select>
+        </div>
+        <div class="control-group horizontal">
+            <label for="timeSelect">Time Sig</label>
+            <select id="timeSelect">
+                <option value="4/4">4/4</option>
+                <option value="3/4">3/4</option>
+                <option value="6/8">6/8</option>
+            </select>
+        </div>
+        <div class="control-group horizontal">
+            <label for="barCount">Bars</label>
+            <input type="number" id="barCount" value="8">
+        </div>
+        <div class="control-group horizontal">
+            <label for="bpmInput">BPM</label>
+            <input type="number" id="bpmInput" value="100" min="40" max="240">
+        </div>
+        <div style="margin-left: auto;">
+            <span id="userIdDisplay">ID: Loading...</span>
+        </div>
+    </section>
+
+    <aside class="area-palette glass-panel">
+        <div class="panel-label">Diatonic Chords</div>
+        <div id="keyChordPalette" class="palette-grid-vertical"></div>
+    </aside>
+
+    <main class="area-center">
+        <div class="recs-box glass-panel">
+            <div class="empty-state">
+                Select a chord to see recommended movements.
+            </div>
+        </div>
+
+        <div class="fretboard-box">
+            <div class="fretboard-center-wrapper">
+                <div class="fretboard-container" id="fretboard"></div>
+            </div>
+        </div>
+
+        <div class="fretboard-controls">
+            <button id="strumBtn" class="action-btn purple">🔊 Strum Selection</button>
+            <button id="clearBoardBtn" class="action-btn purple-ghost">Clear Fretboard</button>
+        </div>
+    </main>
+
+    <aside class="area-analysis glass-panel">
+        <div class="chord-box primary">
+            <div class="chord-label">Primary Detection</div>
+            <div id="primaryChord" class="chord-name">-</div>
+            <div id="primaryDetails" class="chord-details">Select notes...</div>
+        </div>
+        
+        <div class="chord-box secondary">
+            <div class="chord-label">Alternatives</div>
+            <div id="secondaryChords" class="chord-list-vertical">
+                <span class="empty-state">...</span>
+            </div>
+        </div>
+
+        <div class="emotion-box">
+            <div class="chord-label">Harmonic Vibe</div>
+            <div id="chordEmotion" class="emotion-text">
+                Play a chord to see description
+            </div>
+        </div>
+        
+        <div class="right-actions">
+            <button id="addChordBtn" class="action-btn hero-add">+ Add to Timeline</button>
+        </div>
+    </aside>
+
+    <section class="area-controls glass-panel">
+        <div class="control-cluster">
+            <button id="playBtn" class="transport-btn play">▶ Play</button>
+            <button id="stopBtn" class="transport-btn stop">⏹ Stop</button>
+        </div>
+        <div class="control-cluster">
+            <button id="removeChordBtn" class="remove-btn">🗑️ Remove Chord</button>
+            <button id="clearTimelineBtn" class="remove-btn" style="background-color: #7f8c8d;">💥 Clear All</button>
+        </div>
+        <div class="control-cluster">
+            <button id="loadBtn" class="action-btn secondary">📂 Load</button>
+            <button id="saveBtn" class="save-btn">💾 Save</button>
+        </div>
+    </section>
+
+    <footer class="area-timeline glass-panel">
+        <div class="timeline-wrapper">
+            <div class="timeline-row" id="timelineRow"></div>
+        </div>
+    </footer>
+
+</div>
+
+<script src="music_theory.js"></script>
+<script src="chord_generator.js"></script>
+<script src="audio_manager.js"></script>
+<script src="harmonic_engine.js"></script> 
+<script src="app.js"></script>
+</body>
+</html>
