@@ -36,13 +36,14 @@ const MusicTheory = (() => {
     // --- 2. SCALE FORMULAS ---
     const SCALES = {
         'Major': [0, 2, 4, 5, 7, 9, 11],
-        
-        // ADDED ALIAS: "Minor" now maps directly to Natural Minor intervals
-        'Minor': [0, 2, 3, 5, 7, 8, 10], 
-        'Natural Minor': [0, 2, 3, 5, 7, 8, 10],
-        
-        'Harmonic Minor': [0, 2, 3, 5, 7, 8, 11],
-        'Melodic Minor': [0, 2, 3, 5, 7, 9, 11]
+        'Minor': [0, 2, 3, 5, 7, 8, 10], // Natural Minor
+        'Natural Minor': [0, 2, 3, 5, 7, 8, 10]
+    };
+
+    // NEW: Pentatonic Formulas
+    const PENTATONIC_SCALES = {
+        'Major': [0, 2, 4, 7, 9],      // 1, 2, 3, 5, 6
+        'Minor': [0, 3, 5, 7, 10]      // 1, b3, 4, 5, b7
     };
 
     /* --- CORE FUNCTIONS --- */
@@ -324,13 +325,40 @@ const MusicTheory = (() => {
         return map[degreeStr] === semitones;
     }
 
+    function getScaleNotes(rootName, quality, scaleType) {
+        const rootVal = NOTES.indexOf(rootName);
+        if (rootVal === -1) return [];
+
+        // 1. Determine which interval pattern to use
+        // If scaleType is 'pentatonic', use PENTATONIC_SCALES
+        // If scaleType is 'diatonic', use SCALES
+        let intervals = [];
+
+        // Normalize quality to just 'Major' or 'Minor' for scale lookup
+        // (e.g. if key is "C-Major", quality is "Major")
+        const keyQuality = quality.includes('Minor') ? 'Minor' : 'Major';
+
+        if (scaleType === 'pentatonic') {
+            intervals = PENTATONIC_SCALES[keyQuality];
+        } else {
+            intervals = SCALES[keyQuality];
+        }
+
+        if (!intervals) return [];
+
+        // 2. Map intervals to actual pitch classes (0-11)
+        return intervals.map(i => (rootVal + i) % 12);
+    }
+
     // Expose functions
     return {
         detectChord,
         getDiatonicChords,
         getChordEmotion,
+        getScaleNotes, // Export the new function
         CHORD_DEFINITIONS,
         NOTES
     };
 
 })();
+

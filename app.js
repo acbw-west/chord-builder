@@ -25,6 +25,13 @@ const STATE = {
     currentRoot: null // Explicitly track root for comparison
 };
 
+// 1. Add Visualizer State
+const VIZ_STATE = {
+    showChord: true,
+    showPenta: false,
+    showDiatonic: false
+};
+
 /* --- PLAYBACK STATE --- */
 const PLAYBACK = {
     isPlaying: false,
@@ -172,8 +179,11 @@ document.addEventListener('DOMContentLoaded', () => {
     initVisualizerFretboard(); 
     initTimeline();
     setupEventListeners();
-    generateKeyPalette();
-    updateDetectedChord(); 
+    
+    // Manually trigger the key logic so the Palette and Diatonic scales load immediately
+    generateKeyPalette(); 
+    // Force the visualizer to calculate the diatonic scale for C Major immediately
+    updateVisualizerBoard(null); 
 });
 
 /* --- 1. KEY PALETTE LOGIC (Using ChordGenerator) --- */
@@ -676,25 +686,73 @@ function initVisualizerFretboard() {
     container.appendChild(neckWrapper);
 }
 
-// 2. Update the Board (Run every time detection changes)
+// 3. Rewrite updateVisualizerBoard (The Heavy Lifter)
 function updateVisualizerBoard(primaryChord) {
     const container = document.getElementById('fretboardVisualizer');
     if (!container) return;
 
-    // Clear previous highlights
-    container.querySelectorAll('.fret-cell.active').forEach(c => c.classList.remove('active'));
+    // A. Reset all cells (Remove all layer classes)
+    const allCells = container.querySelectorAll('.fret-cell');
+    allCells.forEach(cell => {
+        cell.classList.remove('layer-chord', 'layer-penta', 'layer-diatonic');
+        // Reset marker style overrides we did in CSS
+        const marker = cell.querySelector('.note-marker');
+        if(marker) marker.style = ""; 
+    });
 
-    if (!primaryChord) return;
+    // B. Get Context Data
+    // 1. Current Key Data
+    const keySelectVal = document.getElementById('keySelect').value; // "C-Major"
+    const [keyRoot, keyQuality] = keySelectVal.split('-');
 
-    // Calculate Target Notes (0-11)
-    const rootVal = primaryChord.rootVal;
-    // Map intervals to actual pitch classes (e.g., C Major [0,4,7] -> C, E, G)
-    const targetNotes = primaryChord.intervals.map(iv => (rootVal + iv) % 12);
+    // 2. Calculate Scale Arrays (Integers 0-11)
+    let chordNotes = [];
+    let pentaNotes = [];
+    let diatonicNotes = [];
 
-    // Highlight EVERY matching note on the visualizer
-    targetNotes.forEach(noteVal => {
-        const matches = container.querySelectorAll(`[data-viz-note="${noteVal}"]`);
-        matches.forEach(cell => cell.classList.add('active'));
+    // CHORD NOTES: From the specific chord detected/selected
+    // We use the chord object passed in, OR fallback to current detected
+    const targetChordObj = primaryChord || (STATE.currentChord ? { 
+        rootVal: MusicTheory.NOTES.indexOf(STATE.currentRoot),
+        intervals: MusicTheory.CHORD_DEFINITIONS.find(d => d.name === STATE.lastDetectedQuality)?.intervals || []
+    } : null);
+
+    if (targetChordObj && targetChordObj.rootVal !== undefined) {
+         chordNotes = targetChordObj.intervals.map(iv => (targetChordObj.rootVal + iv) % 12);
+    }
+
+    // PENTATONIC NOTES: Based on KEY
+    if (VIZ_STATE.showPenta) {
+        pentaNotes = MusicTheory.getScaleNotes(keyRoot, keyQuality, 'pentatonic');
+    }
+
+    // DIATONIC NOTES: Based on KEY
+    if (VIZ_STATE.showDiatonic) {
+        diatonicNotes = MusicTheory.getScaleNotes(keyRoot, keyQuality, 'diatonic');
+    }
+
+    // C. Apply Layers to Board
+    // Iterate over every cell to check membership
+    allCells.forEach(cell => {
+        // Skip Nut if it's purely decorative, but usually we map nut too
+        if (!cell.dataset.vizNote) return; 
+
+        const noteVal = parseInt(cell.dataset.vizNote);
+
+        // 1. Diatonic Check
+        if (VIZ_STATE.showDiatonic && diatonicNotes.includes(noteVal)) {
+            cell.classList.add('layer-diatonic');
+        }
+
+        // 2. Pentatonic Check
+        if (VIZ_STATE.showPenta && pentaNotes.includes(noteVal)) {
+            cell.classList.add('layer-penta');
+        }
+
+        // 3. Chord Check
+        if (VIZ_STATE.showChord && chordNotes.includes(noteVal)) {
+            cell.classList.add('layer-chord');
+        }
     });
 }
 
@@ -838,28 +896,28 @@ function handleDragLeave(e) {
 
 function handleDrop(e) {
     if (e.stopPropagation) {
-        e.stopPropagation(); // Stops some browsers from redirecting.
+        e.stopPropagation(); 
     }
 
-    // Don't do anything if dropping onto itself
     if (dragSrcEl !== this) {
-        
-        // --- 1. CAPTURE DATA FROM SOURCE (The one we dragged) ---
+        // 1. Capture Data
         const srcData = getCellData(dragSrcEl);
-
-        // --- 2. CAPTURE DATA FROM TARGET (Where we dropped it) ---
-        // (This might be empty, or it might be another chord we need to swap)
         const targetData = getCellData(this);
 
-        // --- 3. PERFORM THE SWAP ---
-        // Apply Source Data -> Target Cell
+        // 2. Swap Content (Text & Voicing)
         setCellData(this, srcData);
-
-        // Apply Target Data -> Source Cell (Swapping logic)
-        // If target was empty, this effectively clears the source.
         setCellData(dragSrcEl, targetData);
+
+        // 3. Swap Colors (Crucial Fix)
+        // First, strip old colors from both
+        removeColorClasses(this);
+        removeColorClasses(dragSrcEl);
+
+        // Then apply new colors (if they exist in the data we just swapped)
+        if (srcData.category) this.classList.add(srcData.category);
+        if (targetData.category) dragSrcEl.classList.add(targetData.category);
         
-        // Update selection highlights if necessary
+        // Update visual selection highlights
         if(STATE.selectedCell === dragSrcEl) selectCell(this);
     }
 
@@ -881,16 +939,16 @@ function handleDragEnd(e) {
 function getCellData(cell) {
     const chordSpan = cell.querySelector('.cell-chord');
     
-    // Find which category class this cell has (e.g., 'cat-major')
-    let catClass = null;
+    // Find the color class (starts with 'color-')
+    let colorClass = null;
     cell.classList.forEach(cls => {
-        if (CATEGORY_CLASSES.includes(cls)) catClass = cls;
+        if (cls.startsWith('color-')) colorClass = cls;
     });
 
     return {
         chordName: chordSpan.textContent,
-        voicing: cell.dataset.voicing || null, // The hidden JSON notes
-        category: catClass
+        voicing: cell.dataset.voicing || null,
+        category: colorClass // This now captures the specific color class
     };
 }
 
@@ -922,18 +980,25 @@ function setCellData(cell, data) {
     }
 }
 
-/* --- 6. EVENT LISTENERS (UPDATED ADD BUTTON) --- */
+
+/* --- 6. EVENT LISTENERS (UPDATED) --- */
 function setupEventListeners() {
+    // 1. Settings Changes
     document.getElementById('barCount').addEventListener('change', initTimeline);
     document.getElementById('timeSelect').addEventListener('change', initTimeline);
     
     document.getElementById('keySelect').addEventListener('change', () => {
+        // Reset Palette state
         PALETTE_STATE.forEach(s => { s.qIdx = 0; s.sIdx = 0; });
         STATE.activeDegreeIdx = null; 
+        
         generateKeyPalette();
+        
+        // FIX: Update visualizer (pass null to force recalculation from State)
+        updateVisualizerBoard(null);
     });
 
-    // UPDATED: ADD CHORD BUTTON
+    // 2. Add Chord to Timeline
     document.getElementById('addChordBtn').addEventListener('click', () => {
         if (!STATE.currentChord) {
             alert("Select a valid chord first!"); return;
@@ -942,21 +1007,19 @@ function setupEventListeners() {
             alert("Select a timeline cell!"); return;
         }
         
-        // 1. Update Text
+        // Update Text
         const displaySpan = STATE.selectedCell.querySelector('.cell-chord');
         displaySpan.textContent = STATE.currentChord;
         
-        // 2. Update Classes (Remove old colors, add new color)
-        // We strip all potential color classes first
+        // Update Classes & Colors
         STATE.selectedCell.className = 'beat-cell selected'; 
         STATE.selectedCell.setAttribute('draggable', 'true');
 
-        // Get the specific color based on the detected quality
         const colorClass = getChordColorClass(STATE.lastDetectedQuality || '');
         STATE.selectedCell.classList.add(colorClass);
 
-        // 3. CAPTURE & SAVE VOICING
-        const activeCells = document.querySelectorAll('.fret-cell.active');
+        // CAPTURE VOICING (Scoped to Main Fretboard ONLY)
+        const activeCells = document.getElementById('fretboard').querySelectorAll('.fret-cell.active');
         const currentVoicing = [];
         
         activeCells.forEach(cell => {
@@ -969,11 +1032,12 @@ function setupEventListeners() {
         STATE.selectedCell.dataset.voicing = JSON.stringify(currentVoicing);
     });
 
+    // 3. Timeline Management
     document.getElementById('removeChordBtn').addEventListener('click', () => {
         if (!STATE.selectedCell) return;
+        
         STATE.selectedCell.querySelector('.cell-chord').textContent = CONFIG.colors.default;
-        STATE.selectedCell.classList.remove(...CATEGORY_CLASSES);
-        // Clear saved data
+        removeColorClasses(STATE.selectedCell);
         delete STATE.selectedCell.dataset.voicing;
     });
 
@@ -983,13 +1047,16 @@ function setupEventListeners() {
 
         document.querySelectorAll('.beat-cell').forEach(cell => {
             cell.querySelector('.cell-chord').textContent = CONFIG.colors.default;
-            cell.classList.remove(...CATEGORY_CLASSES);
+            removeColorClasses(cell);
             delete cell.dataset.voicing;
         });
     });
 
+    // 4. Fretboard Actions (Moved Buttons)
     document.getElementById('strumBtn').addEventListener('click', () => {
-        const activeCells = document.querySelectorAll('.fret-cell.active');
+        // Scope to Main Fretboard to avoid playing Visualizer notes
+        const activeCells = document.getElementById('fretboard').querySelectorAll('.fret-cell.active');
+        
         const notesToPlay = [];
         activeCells.forEach(cell => {
             const visualIndex = parseInt(cell.dataset.stringIndex);
@@ -1007,20 +1074,37 @@ function setupEventListeners() {
         }
     });
     
-    // Clear Fretboard
     document.getElementById('clearBoardBtn').addEventListener('click', () => {
-        document.querySelectorAll('.fret-cell.active').forEach(c => c.classList.remove('active'));
+        // Only clear main board active states
+        document.getElementById('fretboard').querySelectorAll('.fret-cell.active').forEach(c => c.classList.remove('active'));
         updateDetectedChord(); 
     });
 
+    // 5. Visualizer Toggles (The Fix)
+    // We pass 'null' to force the function to look at global State variables
+    document.getElementById('vizToggleChord').addEventListener('change', (e) => {
+        VIZ_STATE.showChord = e.target.checked;
+        updateVisualizerBoard(null); 
+    });
+
+    document.getElementById('vizTogglePenta').addEventListener('change', (e) => {
+        VIZ_STATE.showPenta = e.target.checked;
+        updateVisualizerBoard(null);
+    });
+
+    document.getElementById('vizToggleDiatonic').addEventListener('change', (e) => {
+        VIZ_STATE.showDiatonic = e.target.checked;
+        updateVisualizerBoard(null);
+    });
+
+    // 6. Persistence & Playback
     document.getElementById('saveBtn').addEventListener('click', handleSave);
     document.getElementById('loadBtn').addEventListener('click', handleLoad);
 
-    // PLAYBACK CONTROLS
     document.getElementById('playBtn').addEventListener('click', startPlayback);
     document.getElementById('stopBtn').addEventListener('click', stopPlayback);
     
-    // Safety: Stop playback if user changes bars/time while playing
+    // Safety: Stop playback on settings change
     document.getElementById('barCount').addEventListener('change', stopPlayback);
     document.getElementById('timeSelect').addEventListener('change', stopPlayback);
 }
@@ -1506,4 +1590,13 @@ function updateExplorerCard(root, quality) {
     });
 
     container.appendChild(card);
+}
+
+/* Helper: Finds and removes any class starting with "color-" */
+function removeColorClasses(element) {
+    const classesToRemove = [];
+    element.classList.forEach(cls => {
+        if (cls.startsWith('color-')) classesToRemove.push(cls);
+    });
+    classesToRemove.forEach(cls => element.classList.remove(cls));
 }

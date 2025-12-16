@@ -21,6 +21,7 @@ const AudioManager = (() => {
     compressor.connect(ctx.destination);
 
     let activeSources = [];
+    let currentStrumId = 0; 
 
     // Unlock Audio Context
     const unlockAudio = () => {
@@ -44,45 +45,53 @@ const AudioManager = (() => {
     /* --- 3. CORE FUNCTIONS --- */
 
     function stopAllSounds() {
-        const now = ctx.currentTime;
+        // Immediate cleanup of all active sources
         activeSources.forEach(source => {
             try {
-                source.gainNode.gain.cancelScheduledValues(now);
-                source.gainNode.gain.setValueAtTime(source.gainNode.gain.value, now);
-                source.gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-                source.sourceNode.stop(now + 0.1);
+                // 1. Instant fade to prevent click
+                source.gainNode.gain.cancelScheduledValues(ctx.currentTime);
+                source.gainNode.gain.setValueAtTime(source.gainNode.gain.value, ctx.currentTime);
+                source.gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.05);
+                
+                // 2. Stop and Disconnect (The Nuclear Option)
+                source.sourceNode.stop(ctx.currentTime + 0.06);
+                setTimeout(() => {
+                    source.sourceNode.disconnect();
+                    source.gainNode.disconnect();
+                }, 100);
             } catch (e) { }
         });
         activeSources = [];
     }
 
-    /**
-     * NEW: Silently loads the audio files into cache so they are ready later.
-     */
     async function preload(activeNotes) {
-        if (ctx.state === 'suspended') ctx.resume(); // Ensure context is awake
-        
-        // We don't await this; we let it run in the background
+        if (ctx.state === 'suspended') ctx.resume();
         activeNotes.forEach(async (note) => {
             const name = getNoteFilename(note.stringIndex, note.fret);
-            // Calling loadSound will populate bufferCache
             await loadSound(name); 
         });
     }
 
     async function strum(activeNotes) {
+        const myId = ++currentStrumId;
+
         if (ctx.state === 'suspended') await ctx.resume();
 
+        // Stop previous sounds
         stopAllSounds();
+
+        // Sort notes
         activeNotes.sort((a, b) => a.stringIndex - b.stringIndex);
 
-        // Since we preloaded, these should resolve instantly from cache
+        // Load buffers
         const buffers = await Promise.all(
             activeNotes.map(async (note) => {
                 const name = getNoteFilename(note.stringIndex, note.fret);
                 return await loadSound(name);
             })
         );
+
+        if (myId !== currentStrumId) return;
 
         const now = ctx.currentTime;
         
@@ -118,8 +127,13 @@ const AudioManager = (() => {
         source.start(absoluteTime);
 
         activeSources.push({ sourceNode: source, gainNode: gainNode });
+        
         source.onended = () => {
-            activeSources = activeSources.filter(s => s.sourceNode !== source);
+            // Remove this source from the active list
+            const index = activeSources.findIndex(s => s.sourceNode === source);
+            if (index > -1) {
+                activeSources.splice(index, 1);
+            }
         };
     }
 
@@ -150,7 +164,7 @@ const AudioManager = (() => {
     return {
         playNote: playNote,
         strum: strum,
-        preload: preload // Exposed for app.js
+        preload: preload 
     };
 
 })();

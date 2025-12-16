@@ -299,6 +299,143 @@ select, input {
     filter: brightness(0.85); 
 }
 
+/* --- VISUALIZER CONTROLS (Updated Colors) --- */
+.viz-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.viz-toggle {
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+}
+
+.viz-toggle input { display: none; }
+
+.viz-btn {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.4);
+    transition: all 0.2s ease;
+    display: flex; align-items: center; gap: 6px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.viz-btn:hover {
+    background: rgba(255,255,255,0.1);
+    transform: translateY(-1px);
+}
+
+/* -- Toggle Active States -- */
+
+/* 1. Chord (Cyan/Blue) */
+.viz-toggle input:checked + .viz-btn.chord { 
+    background: var(--aurora-teal); color: #0b1026; 
+    border-color: var(--aurora-teal);
+    box-shadow: 0 0 12px rgba(0, 255, 242, 0.4); 
+}
+
+/* 2. Pentatonic (Red) */
+.viz-toggle input:checked + .viz-btn.penta { 
+    background: #ff2a2a; color: #fff; 
+    border-color: #ff2a2a;
+    box-shadow: 0 0 12px rgba(255, 42, 42, 0.6); 
+}
+
+/* 3. Diatonic (Green) */
+.viz-toggle input:checked + .viz-btn.diatonic { 
+    background: #00e676; color: #0b1026; 
+    border-color: #00e676;
+    box-shadow: 0 0 12px rgba(0, 230, 118, 0.4); 
+}
+
+
+/* --- VISUALIZER LAYERS (STACKING ENGINE) --- */
+
+/* STACKING ORDER:
+   1. Diatonic (Background Tint) -> Lowest
+   2. Pentatonic (Ring via ::before) -> Middle
+   3. Chord (Solid Dot via .note-marker) -> Highest
+*/
+
+/* LAYER 1: DIATONIC (Green Background) */
+/* Applied to the cell div itself */
+.fret-cell.layer-diatonic {
+    background: rgba(0, 230, 118, 0.15) !important; /* Glowing Green Tint */
+    box-shadow: inset 0 0 8px rgba(0, 230, 118, 0.3);
+    transition: background 0.2s;
+}
+
+/* LAYER 2: PENTATONIC (Red Ring) */
+/* We use ::before so it creates an independent ring */
+.fret-cell.layer-penta::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 28px; height: 28px; /* Slightly larger than the dot */
+    border: 2px solid #ff2a2a; /* Bright Red */
+    border-radius: 50%;
+    z-index: 15; /* Sits above board, below marker */
+    pointer-events: none;
+    box-shadow: 0 0 8px rgba(255, 42, 42, 0.8);
+}
+
+/* LAYER 3: CHORD (Solid Blue Dot) */
+/* We target the marker explicitly to force it on top */
+.fret-cell.layer-chord .note-marker {
+    display: flex !important;
+    width: 20px; height: 20px;
+    background: radial-gradient(circle at 30% 30%, #00f2ff, #0097a7) !important;
+    color: #00363a !important;
+    box-shadow: 0 0 10px #00e5ff !important;
+    z-index: 20; /* Topmost layer */
+    font-weight: 800;
+}
+
+
+/* --- TEXT VISIBILITY LOGIC (Handling Ghost Notes) --- */
+
+/* Scenario A: Diatonic is ON, but Chord is OFF */
+/* We need to see the note name in Green, but no solid bubble */
+.fret-cell.layer-diatonic:not(.layer-chord) .note-marker {
+    display: flex;
+    background: transparent;
+    color: #00e676; /* Green Text */
+    font-size: 9px;
+    font-weight: 700;
+    box-shadow: none;
+    text-shadow: 0 0 5px rgba(0,0,0,0.8);
+}
+
+/* Scenario B: Pentatonic is ON, but Chord is OFF */
+/* We need to see the note name in Red inside the ring */
+.fret-cell.layer-penta:not(.layer-chord) .note-marker {
+    display: flex;
+    background: transparent;
+    color: #ff2a2a; /* Red Text */
+    font-size: 9px;
+    font-weight: 700;
+    box-shadow: none;
+    text-shadow: 0 0 5px rgba(0,0,0,0.8);
+    z-index: 20;
+}
+
+/* Scenario C: Both Penta and Diatonic are ON, but Chord is OFF */
+/* Pentatonic is "stronger" than Diatonic, so show Red text */
+.fret-cell.layer-penta.layer-diatonic:not(.layer-chord) .note-marker {
+    color: #ff2a2a; /* Red wins */
+}
+
 /* --- ZONE 6: ANALYSIS --- */
 .area-analysis {
     grid-area: analysis;

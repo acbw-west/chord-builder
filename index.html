@@ -101,19 +101,31 @@
         </div>
 
         <div class="visualizer-box">
-            <div class="fretboard-center-wrapper">
-                <div class="fretboard-container visualizer" id="fretboardVisualizer"></div>
-            </div>
+    
+    <div class="viz-controls glass-panel" style="margin-bottom: 10px; padding: 8px 15px; display:flex; gap: 20px; align-items: center;">
+        <span class="panel-label" style="margin:0; width:auto; border:none; padding:0;">Show:</span>
+        
+        <label class="viz-toggle">
+            <input type="checkbox" id="vizToggleChord" checked>
+            <span class="viz-btn chord">Chord</span>
+        </label>
 
-            <div class="fretboard-actions">
-                <button id="strumBtn" class="action-btn purple small-btn">
-                    <span>🔊</span> Strum
-                </button>
-                <button id="clearBoardBtn" class="action-btn blue small-btn">
-                    <span>✖</span> Clear Board
-                </button>
-            </div>
-        </div>
+        <label class="viz-toggle">
+            <input type="checkbox" id="vizTogglePenta">
+            <span class="viz-btn penta">Pentatonic</span>
+        </label>
+
+        <label class="viz-toggle">
+            <input type="checkbox" id="vizToggleDiatonic">
+            <span class="viz-btn diatonic">Diatonic</span>
+        </label>
+    </div>
+
+    <div class="fretboard-center-wrapper">
+        <div class="fretboard-container visualizer" id="fretboardVisualizer"></div>
+    </div>
+    
+    </div>
     </main>
 
     <aside class="area-analysis glass-panel">
@@ -147,10 +159,17 @@
             <button id="playBtn" class="transport-btn play">▶ Play</button>
             <button id="stopBtn" class="transport-btn stop">⏹ Stop</button>
         </div>
-        <div class="control-cluster">
-            <button id="removeChordBtn" class="remove-btn">🗑️ Remove Chord</button>
-            <button id="clearTimelineBtn" class="remove-btn" style="background-color: #7f8c8d;">💥 Clear All</button>
+
+        <div class="control-cluster" style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 10px;">
+            <button id="strumBtn" class="action-btn purple small-btn">🔊 Strum</button>
+            <button id="clearBoardBtn" class="action-btn blue small-btn">✖ Clear</button>
         </div>
+
+        <div class="control-cluster" style="border-left: 1px solid rgba(255,255,255,0.1); padding-left: 10px;">
+            <button id="removeChordBtn" class="remove-btn">🗑️ Remove</button>
+            <button id="clearTimelineBtn" class="remove-btn" style="background-color: #7f8c8d;">💥 Reset All</button>
+        </div>
+
         <div class="control-cluster">
             <button id="loadBtn" class="action-btn secondary">📂 Load</button>
             <button id="saveBtn" class="save-btn">💾 Save</button>
