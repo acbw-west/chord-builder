@@ -174,15 +174,13 @@ const CATEGORY_CLASSES = ['cat-major', 'cat-minor', 'cat-dominant', 'cat-dim', '
 
 /* --- INITIALIZATION --- */
 document.addEventListener('DOMContentLoaded', () => {
+    initTheme(); // <--- Add this first
     initSession();
     initFretboard();
     initVisualizerFretboard(); 
     initTimeline();
     setupEventListeners();
-    
-    // Manually trigger the key logic so the Palette and Diatonic scales load immediately
-    generateKeyPalette(); 
-    // Force the visualizer to calculate the diatonic scale for C Major immediately
+    generateKeyPalette();
     updateVisualizerBoard(null); 
 });
 
@@ -466,6 +464,26 @@ function arraysEqual(a, b) {
 }
 
 /* --- 3. SESSION & HELPER LOGIC --- */
+
+/* --- THEME ENGINE --- */
+function initTheme() {
+    const themeSelect = document.getElementById('themeSelect');
+    
+    // 1. Load saved theme or default to 'aurora'
+    const savedTheme = localStorage.getItem('cloud_chord_theme') || 'aurora';
+    
+    // 2. Apply it
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    themeSelect.value = savedTheme;
+
+    // 3. Listener
+    themeSelect.addEventListener('change', (e) => {
+        const newTheme = e.target.value;
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('cloud_chord_theme', newTheme);
+    });
+}
+
 function initSession() {
     const userIdDisplay = document.getElementById('userIdDisplay');
     let savedId = localStorage.getItem('cloud_guitar_user');
@@ -756,15 +774,39 @@ function updateVisualizerBoard(primaryChord) {
     });
 }
 
-/* --- 5. TIMELINE LOGIC (UPDATED WITH DRAG & DROP) --- */
+
+/* --- 5. TIMELINE LOGIC (SMART RESIZING) --- */
 function initTimeline() {
     const timelineRow = document.getElementById('timelineRow');
     const barInput = document.getElementById('barCount');
     const timeSelect = document.getElementById('timeSelect');
     
-    timelineRow.innerHTML = ''; 
-    STATE.selectedCell = null;
+    // 1. CAPTURE EXISTING STATE (The Smart Part)
+    // We map data by "Bar-Beat" key (e.g., "1-1", "1-2") to preserve musical position.
+    const existingData = new Map();
+    
+    // Loop through current DOM to save data before we destroy it
+    const currentGroups = timelineRow.querySelectorAll('.bar-group');
+    currentGroups.forEach((group, gIdx) => {
+        const barNum = gIdx + 1;
+        const cells = group.querySelectorAll('.beat-cell');
+        cells.forEach((cell, cIdx) => {
+            const beatNum = cIdx + 1;
+            // Check if this cell has a chord (content is not default "-")
+            const chordText = cell.querySelector('.cell-chord').textContent;
+            if (chordText !== CONFIG.colors.default) {
+                // Use our existing helper to grab text, voicing, and color class
+                const data = getCellData(cell);
+                existingData.set(`${barNum}-${beatNum}`, data);
+            }
+        });
+    });
 
+    // 2. CLEAR & RESET
+    timelineRow.innerHTML = ''; 
+    STATE.selectedCell = null; // Clear selection to prevent errors with deleted nodes
+
+    // 3. REBUILD GRID
     const bars = parseInt(barInput.value) || 4;
     const beatsPerBar = parseInt(timeSelect.value.split('/')[0]);
 
@@ -795,7 +837,16 @@ function initTimeline() {
             cell.appendChild(label);
             cell.appendChild(chordDisplay);
 
-            // CLICK LISTENER (Selection & Playback)
+            // 4. RESTORE DATA (If it exists for this slot)
+            const key = `${b}-${beat}`;
+            if (existingData.has(key)) {
+                const savedData = existingData.get(key);
+                setCellData(cell, savedData); // Reuse our helper to apply text/color/voicing
+            }
+
+            // --- RE-ATTACH LISTENERS ---
+            
+            // Click (Selection & Playback)
             cell.addEventListener('click', () => {
                 selectCell(cell);
                 if (cell.dataset.voicing) {
@@ -806,7 +857,7 @@ function initTimeline() {
                 }
             });
 
-            // --- DRAG & DROP LISTENERS ---
+            // Drag & Drop
             cell.addEventListener('dragstart', handleDragStart);
             cell.addEventListener('dragover', handleDragOver);
             cell.addEventListener('dragleave', handleDragLeave);

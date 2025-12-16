@@ -72,8 +72,15 @@
             <label for="bpmInput">BPM</label>
             <input type="number" id="bpmInput" value="100" min="40" max="240">
         </div>
-        <div style="margin-left: auto;">
-            <span id="userIdDisplay">ID: Loading...</span>
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 15px;">
+            <div class="control-group horizontal">
+                <label for="themeSelect">Theme</label>
+                <select id="themeSelect" style="width: 100px;">
+                    <option value="aurora">Aurora</option>
+                    <option value="christmas">Christmas</option> 
+                    </select>
+            </div>
+            <span id="userIdDisplay">ID: ...</span>
         </div>
     </section>
 
